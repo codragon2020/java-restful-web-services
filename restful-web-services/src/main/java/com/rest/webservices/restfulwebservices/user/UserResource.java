@@ -3,8 +3,15 @@ package com.rest.webservices.restfulwebservices.user;
 import java.net.URI;
 import java.util.List;
 
+import javax.validation.Valid;
+
+import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.*;
+
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.hateoas.EntityModel;
+import org.springframework.hateoas.server.mvc.WebMvcLinkBuilder;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -26,17 +33,44 @@ public class UserResource {
 	
 	//GET /users/{id}
 	@GetMapping("/users/{id}")
-	public User retrieveUser(@PathVariable int id){
+	public EntityModel<User> retrieveUser(@PathVariable int id){
 		User user = service.findOne(id);
 		if(user==null) {
 			throw new UserNotFoundException("id-" + id);
 		}
 		
-		return user;
+		EntityModel<User> model = EntityModel.of(user);
+		
+		//Adding link using the HATEOAS framework
+		WebMvcLinkBuilder linkToUsers = linkTo(methodOn(this.getClass()).retrieveAllUsers());
+		
+		model.add(linkToUsers.withRel("all-users"));
+		
+		return model;
 	}
 	
+	//DELETE /users/{id}
+		@DeleteMapping("/users/{id}")
+		public void deleteUser(@PathVariable int id){
+			User user = service.deleteById(id);
+			if(user==null) {
+				throw new UserNotFoundException("id-" + id);
+			}
+		}
+	
+	//GET /users/{id}/posts
+		@GetMapping("/users/{id}/posts")
+		public User retrieveUserPosts(@PathVariable int id){
+			User user = service.findOne(id);
+			if(user==null) {
+				throw new UserNotFoundException("id-" + id);
+			}
+			
+			return user;
+		}
+	
 	@PostMapping("/users")
-	public ResponseEntity<Object> createUser(@RequestBody User user) {
+	public ResponseEntity<Object> createUser(@Valid @RequestBody User user) {
 		User savedUser = service.save(user);
 		
 		URI location = ServletUriComponentsBuilder
